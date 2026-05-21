@@ -2,6 +2,7 @@ import { AsyncResult, complete, errored, isComplete, isErrored } from '@attio/fe
 import prisma from '../../../../prisma';
 import { fetchHiscoresJSON, HiscoresError } from '../../../../services/jagex.service';
 import { Player, PlayerType } from '../../../../types';
+import { syncCachedDeltaPlayerFields } from '../../../../utils/sync-cached-delta-player-fields.util';
 import { eventEmitter, EventType } from '../../../events';
 import { buildHiscoresSnapshot } from '../../snapshots/services/BuildHiscoresSnapshot';
 
@@ -38,6 +39,8 @@ async function assertPlayerType(player: Player): AsyncResult<
       type: confirmedTypeResult.value
     }
   });
+
+  await syncCachedDeltaPlayerFields(updatedPlayer);
 
   eventEmitter.emit(EventType.PLAYER_TYPE_CHANGED, {
     username: player.username,

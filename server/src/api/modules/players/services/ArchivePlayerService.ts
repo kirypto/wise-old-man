@@ -2,6 +2,7 @@ import { ServerError } from '../../../../api/errors';
 import prisma from '../../../../prisma';
 import { logger } from '../../../../services/logger.service';
 import { NameChangeStatus, Player, PlayerStatus } from '../../../../types';
+import { syncCachedDeltaPlayerFields } from '../../../../utils/sync-cached-delta-player-fields.util';
 import { eventEmitter, EventType } from '../../../events';
 import { splitArchivalData } from '../player.utils';
 
@@ -118,6 +119,8 @@ async function archivePlayer(player: Player, createNewPlayer = true): Promise<Ar
 
       throw new ServerError('Failed to archive player');
     });
+
+  await syncCachedDeltaPlayerFields(result.archivedPlayer);
 
   eventEmitter.emit(EventType.PLAYER_ARCHIVED, {
     username: result.archivedPlayer.username,

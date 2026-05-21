@@ -84,7 +84,11 @@ export const SyncPlayerDeltasJobHandler: JobHandler<Payload> = {
       period,
       startedAt: startSnapshot.createdAt,
       endedAt: latestSnapshot.createdAt,
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      playerBuild: player.build,
+      playerType: player.type,
+      playerCountry: player.country,
+      playerStatus: player.status
     };
 
     for (const metric of METRICS) {

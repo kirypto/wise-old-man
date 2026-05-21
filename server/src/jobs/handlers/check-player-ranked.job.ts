@@ -3,6 +3,7 @@ import prisma from '../../prisma';
 import { fetchHiscoresJSON } from '../../services/jagex.service';
 import { PlayerStatus } from '../../types';
 import { assertNever } from '../../utils/assert-never.util';
+import { syncCachedDeltaPlayerFields } from '../../utils/sync-cached-delta-player-fields.util';
 import { JobHandler, JobHandlerContext } from '../types/job-handler.type';
 import { JobType } from '../types/job-type.enum';
 
@@ -62,7 +63,7 @@ async function handleNotFound(payload: Payload, context: JobHandlerContext) {
   if ((payload.attempts ?? 0) + 1 >= MAX_CHECK_ATTEMPTS) {
     // If it fails every attempt with the "Failed to load hiscores" (400) error message,
     // then we can be pretty sure that the player is unranked.
-    await prisma.player.update({
+    const updatedPlayer = await prisma.player.update({
       where: {
         username: payload.username
       },
@@ -70,6 +71,8 @@ async function handleNotFound(payload: Payload, context: JobHandlerContext) {
         status: PlayerStatus.UNRANKED
       }
     });
+
+    await syncCachedDeltaPlayerFields(updatedPlayer);
 
     // Being unranked could also mean a player is banned, so if we determine
     // that they're not on the hiscores, check if they're banned on RuneMetrics.

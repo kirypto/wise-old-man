@@ -2,6 +2,7 @@ import { standardizeUsername } from '../../api/modules/players/player.utils';
 import { updatePlayer } from '../../api/modules/players/services/UpdatePlayerService';
 import prisma from '../../prisma';
 import { Player, PlayerStatus } from '../../types';
+import { syncCachedDeltaPlayerFields } from '../../utils/sync-cached-delta-player-fields.util';
 import { JobHandler } from '../types/job-handler.type';
 
 interface Payload {
@@ -24,7 +25,7 @@ export const ScheduleFlaggedPlayerReviewJobHandler: JobHandler<Payload> = {
     }
 
     // Force-unflag them
-    await prisma.player.update({
+    const unflaggedPlayer = await prisma.player.update({
       data: {
         status: PlayerStatus.ACTIVE
       },
@@ -32,6 +33,8 @@ export const ScheduleFlaggedPlayerReviewJobHandler: JobHandler<Payload> = {
         id: flaggedPlayer.id
       }
     });
+
+    await syncCachedDeltaPlayerFields(unflaggedPlayer);
 
     // Update them, this will either fix their account if they're not flaggable anymore,
     // or send a review message to our Discord server.
