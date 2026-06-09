@@ -23,27 +23,25 @@ async function findDeltaLeaderboards(
 > {
   const { country, playerType, playerBuild } = filter;
 
-  const playerQuery: PrismaTypes.PlayerWhereInput = {};
+  const where: PrismaTypes.CachedDeltaWhereInput = {
+    period,
+    metric,
+    playerStatus: PlayerStatus.ACTIVE
+  };
 
-  if (country) playerQuery.country = country;
-  if (playerType) playerQuery.type = playerType;
-  if (playerBuild) playerQuery.build = playerBuild;
+  if (country) where.playerCountry = country;
+  if (playerBuild) where.playerBuild = playerBuild;
 
   // When filtering by player type, the ironman filter should include UIM and HCIM
-  if (playerQuery.type === PlayerType.IRONMAN) {
-    playerQuery.type = { in: [PlayerType.IRONMAN, PlayerType.HARDCORE, PlayerType.ULTIMATE] };
+  if (playerType) {
+    where.playerType =
+      playerType === PlayerType.IRONMAN
+        ? { in: [PlayerType.IRONMAN, PlayerType.HARDCORE, PlayerType.ULTIMATE] }
+        : playerType;
   }
 
-  // Fetch the top 20 deltas for this period & metric
   const deltas = await prisma.cachedDelta.findMany({
-    where: {
-      period,
-      metric,
-      player: {
-        ...playerQuery,
-        status: PlayerStatus.ACTIVE
-      }
-    },
+    where,
     select: {
       playerId: true,
       metric: true,
@@ -56,16 +54,12 @@ async function findDeltaLeaderboards(
     take: MAX_RESULTS
   });
 
-  // Transform the database objects into the tighter result response objects
-  const results = deltas.map(d => ({
+  return deltas.map(d => ({
     player: d.player,
-    playerId: d.playerId,
     startDate: d.startedAt,
     endDate: d.endedAt,
     gained: Math.max(0, d.value)
   }));
-
-  return results;
 }
 
 export { findDeltaLeaderboards };
