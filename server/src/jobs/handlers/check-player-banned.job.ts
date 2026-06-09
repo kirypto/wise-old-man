@@ -4,6 +4,7 @@ import prisma from '../../prisma';
 import { getRuneMetricsBannedStatus } from '../../services/jagex.service';
 import { logger } from '../../services/logger.service';
 import { PlayerStatus } from '../../types';
+import { syncCachedDeltaPlayerFields } from '../../utils/sync-cached-delta-player-fields.util';
 import { JobHandler } from '../types/job-handler.type';
 
 interface Payload {
@@ -51,18 +52,22 @@ export const CheckPlayerBannedJobHandler: JobHandler<Payload> = {
     const { isBanned } = bannedStatusResult.value;
 
     if (player.status === PlayerStatus.UNRANKED && isBanned) {
-      await prisma.player.update({
+      const updatedPlayer = await prisma.player.update({
         where: { username },
         data: { status: PlayerStatus.BANNED }
       });
+
+      await syncCachedDeltaPlayerFields(updatedPlayer);
       return;
     }
 
     if (player.status === PlayerStatus.BANNED && !isBanned) {
-      await prisma.player.update({
+      const updatedPlayer = await prisma.player.update({
         where: { username },
         data: { status: PlayerStatus.UNRANKED }
       });
+
+      await syncCachedDeltaPlayerFields(updatedPlayer);
     }
   }
 };

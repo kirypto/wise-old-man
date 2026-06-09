@@ -1,5 +1,6 @@
 import prisma from '../../../../prisma';
 import { Country, Player } from '../../../../types';
+import { syncCachedDeltaPlayerFields } from '../../../../utils/sync-cached-delta-player-fields.util';
 import { findCountry } from '../../../../utils/shared';
 import { BadRequestError, NotFoundError, ServerError } from '../../../errors';
 import { standardizeUsername } from '../player.utils';
@@ -24,6 +25,8 @@ async function changePlayerCountry(username: string, country: string | null): Pr
       data: { country: countryCode ? countryCode : null },
       where: { username: standardizeUsername(username) }
     });
+
+    await syncCachedDeltaPlayerFields(updatedPlayer);
 
     return updatedPlayer;
   } catch (_error) {

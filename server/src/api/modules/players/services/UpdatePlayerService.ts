@@ -24,6 +24,7 @@ import {
   standardizeUsername,
   validateUsername
 } from '../player.utils';
+import { syncCachedDeltaPlayerFields } from '../../../../utils/sync-cached-delta-player-fields.util';
 import { archivePlayer } from './ArchivePlayerService';
 import { assertPlayerType } from './AssertPlayerTypeService';
 import { reviewFlaggedPlayer } from './ReviewFlaggedPlayerService';
@@ -203,6 +204,8 @@ async function updatePlayer(
     where: { id: player.id }
   });
 
+  await syncCachedDeltaPlayerFields(updatedPlayer);
+
   eventEmitter.emit(EventType.PLAYER_UPDATED, {
     username: updatedPlayer.username,
     hasChanged,
@@ -231,6 +234,8 @@ async function handlePlayerFlagged(player: Player, previousStats: Snapshot, reje
     data: { status: PlayerStatus.FLAGGED },
     where: { id: player.id }
   });
+
+  await syncCachedDeltaPlayerFields({ ...player, status: PlayerStatus.FLAGGED });
 
   const flaggedContext = await reviewFlaggedPlayer(player, previousStats, rejectedStats);
 
